@@ -1,0 +1,38 @@
+export const radioEpisodes = [
+  {
+    id: "radio-01",
+    host: "朋友说 DJ",
+    title: "第一条视频标题占位",
+    subtitle: "这里放这一条视频的简短说明",
+    cover: "/radio/covers/episode-01.jpg",
+    video: "/radio/videos/episode-01.mp4",
+    likes: 10,
+  },
+  {
+    id: "radio-02",
+    host: "深夜频道",
+    title: "第二条视频标题占位",
+    subtitle: "这里放第二条视频的简短说明",
+    cover: "/radio/covers/episode-02.jpg",
+    video: "/radio/videos/episode-02.mp4",
+    likes: 6,
+  },
+  {
+    id: "radio-03",
+    host: "发疯时段",
+    title: "第三条视频标题占位",
+    subtitle: "这里放第三条视频的简短说明",
+    cover: "/radio/covers/episode-03.jpg",
+    video: "/radio/videos/episode-03.mp4",
+    likes: 15,
+  },
+  {
+    id: "radio-04",
+    host: "认真安慰局",
+    title: "第四条视频标题占位",
+    subtitle: "这里放第四条视频的简短说明",
+    cover: "/radio/covers/episode-04.jpg",
+    video: "/radio/videos/episode-04.mp4",
+    likes: 12,
+  },
+];
