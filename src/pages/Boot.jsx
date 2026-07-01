@@ -128,9 +128,8 @@ function Boot({ gateState }) {
     return Math.round((base + currentProgress) * 100);
   }, [activeIndex, activeTotalChars, blockedStepDone, blockedStepVisible, typedChars]);
 
-  const blockedSummary = gateState?.detail
-    ? `${gateState.detail} 检测结果：${gateState.locationLabel || "未通过"}。`
-    : "地点检测未通过，当前不在美国范围内，因此入口暂不开放。";
+  const blockedSummary =
+    gateState?.detail || "地点检测未通过，当前不在美国范围内，因此入口暂不开放。";
 
   return (
     <section className="boot-screen">
