@@ -3,13 +3,13 @@ import Boot from "./pages/Boot";
 const staticGateState = {
   status: "blocked",
   detail:
-    "\u5f53\u524d\u5165\u53e3\u5df2\u8bbe\u4e3a\u9759\u6001\u9650\u5236\u6a21\u5f0f\u3002\u68c0\u6d4b\u7ed3\u679c\u56fa\u5b9a\u4e3a\u672a\u5230\u7f8e\u56fd\uff0c\u56e0\u6b64\u6682\u65f6\u65e0\u6cd5\u8fdb\u5165\u540e\u7eed\u5185\u5bb9\uff1b\u7b49\u4f60\u5230\u7f8e\u56fd\u540e\uff0c\u518d\u628a\u8fd9\u91cc\u5207\u6362\u6210\u5f00\u653e\u72b6\u6001\u5373\u53ef\u3002",
-  locationLabel: "\u4e2d\u56fd / \u672a\u5230\u7f8e\u56fd",
-  coordinates: "\u9759\u6001\u9650\u5236\u4e2d",
+    "当前入口已设为静态限制模式。检测结果固定为未到美国，因此暂时无法进入后续内容；等你到美国后，再把这里切换成开放状态即可。",
+  locationLabel: "中国 / 未到美国",
+  coordinates: "静态限制中",
 };
 
 function App() {
-  return <Boot gateState={staticGateState} staticMode />;
+  return <Boot gateState={staticGateState} />;
 }
 
 export default App;

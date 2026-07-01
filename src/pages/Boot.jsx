@@ -1,14 +1,136 @@
-function Boot({ gateState, staticMode = false }) {
-  const isChecking = gateState.status === "checking";
-  const badgeLabel = isChecking
-    ? "\u4f4d\u7f6e\u68c0\u6d4b\u4e2d"
-    : "\u6682\u4e0d\u53ef\u8fdb\u5165";
-  const title = isChecking
-    ? "\u6b63\u5728\u786e\u8ba4\u662f\u5426\u5df2\u7ecf\u5230\u8fbe\u7f8e\u56fd"
-    : "\u5f53\u524d\u4e0d\u5728\u7f8e\u56fd\uff0c\u5165\u53e3\u6682\u4e0d\u5f00\u653e";
-  const subtitle = staticMode
-    ? "\u8fd9\u4e2a\u5165\u53e3\u73b0\u5728\u88ab\u56fa\u5b9a\u4e3a\u672a\u5f00\u653e\u72b6\u6001\uff0c\u7528\u6765\u8868\u8fbe\u53ea\u6709\u5230\u7f8e\u56fd\u540e\u624d\u80fd\u8fdb\u5165\u3002"
-    : "\u8fd9\u4e2a\u5165\u53e3\u4f1a\u5148\u68c0\u6d4b\u5f53\u524d\u4f4d\u7f6e\u3002\u53ea\u6709\u786e\u8ba4\u5df2\u7ecf\u5230\u8fbe\u7f8e\u56fd\uff0c\u624d\u4f1a\u7ee7\u7eed\u6253\u5f00\u540e\u9762\u7684\u5185\u5bb9\u3002";
+import { useEffect, useMemo, useState } from "react";
+
+const bootSteps = [
+  {
+    id: "handshake",
+    title: "连接朋友节点",
+    detail: "正在确认国内朋友频道可用",
+  },
+  {
+    id: "identity",
+    title: "验证访客身份",
+    detail: "已识别为 张希骋",
+  },
+  {
+    id: "messages",
+    title: "装载留言档案",
+    detail: "视频、语音和未来信件准备中",
+  },
+  {
+    id: "channel",
+    title: "同步远方状态",
+    detail: "美国线路已建立",
+  },
+];
+
+function getTypedParts(step, typedChars) {
+  const titleLength = step.title.length;
+  const detailLength = step.detail.length;
+
+  if (typedChars <= titleLength) {
+    return {
+      title: step.title.slice(0, typedChars),
+      detail: "",
+      titleDone: typedChars >= titleLength,
+      detailDone: false,
+    };
+  }
+
+  const detailChars = Math.min(typedChars - titleLength, detailLength);
+
+  return {
+    title: step.title,
+    detail: step.detail.slice(0, detailChars),
+    titleDone: true,
+    detailDone: detailChars >= detailLength,
+  };
+}
+
+function Boot({ gateState }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [typedChars, setTypedChars] = useState(0);
+  const [blockedStepVisible, setBlockedStepVisible] = useState(false);
+  const [blockedStepDone, setBlockedStepDone] = useState(false);
+
+  const activeStep = bootSteps[Math.min(activeIndex, bootSteps.length - 1)];
+  const activeTotalChars = activeStep.title.length + activeStep.detail.length;
+  const isCurrentStepDone = typedChars >= activeTotalChars;
+  const isLastAnimatedStep = activeIndex === bootSteps.length - 1;
+
+  useEffect(() => {
+    if (blockedStepDone) {
+      return undefined;
+    }
+
+    if (blockedStepVisible) {
+      const blockedTimer = window.setTimeout(() => {
+        setBlockedStepDone(true);
+      }, 260);
+
+      return () => {
+        window.clearTimeout(blockedTimer);
+      };
+    }
+
+    if (typedChars < activeTotalChars) {
+      const typingTimer = window.setTimeout(() => {
+        setTypedChars((current) => current + 1);
+      }, typedChars < activeStep.title.length ? 48 : 34);
+
+      return () => {
+        window.clearTimeout(typingTimer);
+      };
+    }
+
+    if (isLastAnimatedStep && isCurrentStepDone) {
+      const blockRevealTimer = window.setTimeout(() => {
+        setBlockedStepVisible(true);
+      }, 260);
+
+      return () => {
+        window.clearTimeout(blockRevealTimer);
+      };
+    }
+
+    const nextStepTimer = window.setTimeout(() => {
+      setActiveIndex((current) => current + 1);
+      setTypedChars(0);
+    }, 220);
+
+    return () => {
+      window.clearTimeout(nextStepTimer);
+    };
+  }, [
+    activeStep.title.length,
+    activeTotalChars,
+    blockedStepDone,
+    blockedStepVisible,
+    isCurrentStepDone,
+    isLastAnimatedStep,
+    typedChars,
+  ]);
+
+  const progressValue = useMemo(() => {
+    if (blockedStepDone) {
+      return 100;
+    }
+
+    if (blockedStepVisible) {
+      return 100;
+    }
+
+    const base = activeIndex / (bootSteps.length + 1);
+    const currentProgress =
+      activeTotalChars === 0
+        ? 0
+        : Math.min(typedChars / activeTotalChars, 1) / (bootSteps.length + 1);
+
+    return Math.round((base + currentProgress) * 100);
+  }, [activeIndex, activeTotalChars, blockedStepDone, blockedStepVisible, typedChars]);
+
+  const blockedSummary = gateState?.detail
+    ? `${gateState.detail} 检测结果：${gateState.locationLabel || "未通过"}。`
+    : "地点检测未通过，当前不在美国范围内，因此入口暂不开放。";
 
   return (
     <section className="boot-screen">
@@ -23,47 +145,142 @@ function Boot({ gateState, staticMode = false }) {
         <div className="boot-screen__content">
           <div className="boot-screen__intro">
             <p className="boot-screen__eyebrow">Faraway Supply Station</p>
-            <h1 className="boot-screen__title">
-              {"\u8fdc\u65b9\u8865\u7ed9\u7ad9"}
-            </h1>
-            <p className="boot-screen__subtitle">{subtitle}</p>
+            <h1 className="boot-screen__title">远方补给站</h1>
+            <p className="boot-screen__subtitle">
+              正在打开张希骋的远方补给入口。系统会按顺序检查通道状态，并在地点检测未通过时限制进入。
+            </p>
           </div>
 
-          <section className="boot-screen__gate" aria-live="polite">
-            <div className="boot-screen__gate-badge">{badgeLabel}</div>
-            <h2 className="boot-screen__gate-title">{title}</h2>
-            <p className="boot-screen__gate-text">{gateState.detail}</p>
+          <section className="boot-screen__console" aria-live="polite">
+            <div className="boot-screen__console-top">
+              <span>startup.log</span>
+              <span>{String(progressValue).padStart(3, "0")}%</span>
+            </div>
 
-            <div className="boot-screen__gate-meta">
-              <div>
-                <span>{"\u68c0\u6d4b\u7ed3\u679c"}</span>
-                <strong>{gateState.locationLabel}</strong>
-              </div>
-              <div>
-                <span>{"\u5750\u6807"}</span>
-                <strong>{gateState.coordinates || "\u6682\u65e0"}</strong>
+            <div className="boot-screen__steps">
+              {bootSteps.map((step, index) => {
+                const isVisible = index < activeIndex;
+                const isActive = index === activeIndex && !blockedStepVisible;
+                const parts = isVisible
+                  ? {
+                      title: step.title,
+                      detail: step.detail,
+                      titleDone: true,
+                      detailDone: true,
+                    }
+                  : isActive
+                    ? getTypedParts(step, typedChars)
+                    : {
+                        title: "",
+                        detail: "",
+                        titleDone: false,
+                        detailDone: false,
+                      };
+
+                return (
+                  <div
+                    key={step.id}
+                    className={
+                      isVisible
+                        ? "boot-screen__step boot-screen__step--visible"
+                        : isActive
+                          ? "boot-screen__step boot-screen__step--active"
+                          : "boot-screen__step"
+                    }
+                  >
+                    <span className="boot-screen__step-mark">
+                      {isVisible ? "done" : isActive ? "run" : "wait"}
+                    </span>
+                    <div className="boot-screen__step-copy">
+                      <strong
+                        className={
+                          isActive && !parts.titleDone
+                            ? "boot-screen__step-title boot-screen__step-title--typing"
+                            : "boot-screen__step-title"
+                        }
+                      >
+                        {parts.title}
+                        {isActive && !parts.titleDone ? (
+                          <span className="boot-screen__typing-cursor" aria-hidden="true" />
+                        ) : null}
+                      </strong>
+                      <p
+                        className={
+                          isActive && parts.titleDone && !parts.detailDone
+                            ? "boot-screen__step-detail boot-screen__step-detail--typing"
+                            : "boot-screen__step-detail"
+                        }
+                      >
+                        {parts.detail}
+                        {isActive && parts.titleDone && !parts.detailDone ? (
+                          <span className="boot-screen__typing-cursor" aria-hidden="true" />
+                        ) : null}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+
+              <div
+                className={
+                  blockedStepVisible
+                    ? blockedStepDone
+                      ? "boot-screen__step boot-screen__step--visible boot-screen__step--blocked"
+                      : "boot-screen__step boot-screen__step--active boot-screen__step--blocked"
+                    : "boot-screen__step"
+                }
+              >
+                <span className="boot-screen__step-mark">
+                  {blockedStepVisible ? (blockedStepDone ? "block" : "run") : "wait"}
+                </span>
+                <div className="boot-screen__step-copy">
+                  <strong className="boot-screen__step-title">
+                    {blockedStepVisible ? "地点检测未通过" : ""}
+                    {blockedStepVisible && !blockedStepDone ? (
+                      <span className="boot-screen__typing-cursor" aria-hidden="true" />
+                    ) : null}
+                  </strong>
+                  <p className="boot-screen__step-detail">
+                    {blockedStepVisible
+                      ? `当前检测结果：${gateState?.locationLabel || "中国 / 未到美国"}，因此后续内容暂不开放`
+                      : ""}
+                  </p>
+                </div>
               </div>
             </div>
           </section>
 
           <section className="boot-screen__status">
             <div className="boot-screen__status-line">
-              <span>{"\u5f53\u524d\u72b6\u6001"}</span>
+              <span>当前任务</span>
               <strong>
-                {staticMode
-                  ? "\u9759\u6001\u9650\u5236\u4e2d"
-                  : "\u7b49\u5f85\u91cd\u65b0\u68c0\u6d4b"}
+                {blockedStepVisible
+                  ? blockedStepDone
+                    ? "限制进入"
+                    : "地点检测中"
+                  : activeStep.title}
               </strong>
             </div>
             <div className="boot-screen__progress" aria-hidden="true">
-              <div className="boot-screen__progress-bar" style={{ width: "100%" }} />
+              <div
+                className="boot-screen__progress-bar"
+                style={{ width: `${progressValue}%` }}
+              />
             </div>
             <p className="boot-screen__status-text">
-              {staticMode
-                ? "\u8fd9\u91cc\u73b0\u5728\u662f\u9759\u6001\u9650\u5236\u5c55\u793a\uff0c\u4e0d\u4f1a\u7ee7\u7eed\u8fdb\u5165\u540e\u9762\u7684\u5185\u5bb9\u3002"
-                : "\u5230\u8fbe\u7f8e\u56fd\u540e\u91cd\u65b0\u68c0\u6d4b\uff0c\u5c31\u53ef\u4ee5\u7ee7\u7eed\u8fdb\u5165\u3002"}
+              {blockedStepDone
+                ? blockedSummary
+                : blockedStepVisible
+                  ? "正在写入地点检测结果。"
+                  : activeStep.detail}
             </p>
           </section>
+
+          {blockedStepDone ? (
+            <button className="boot-screen__button" disabled type="button">
+              暂不可进入
+            </button>
+          ) : null}
         </div>
       </div>
     </section>
