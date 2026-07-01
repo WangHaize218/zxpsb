@@ -147,7 +147,7 @@ function Boot({ gateState }) {
             <p className="boot-screen__eyebrow">Faraway Supply Station</p>
             <h1 className="boot-screen__title">远方补给站</h1>
             <p className="boot-screen__subtitle">
-              正在打开张希骋的远方补给入口。系统会按顺序检查通道状态，并在地点检测未通过时限制进入。
+              正在打开张希骋的远方补给入口。系统正在按顺序检查通道状态。
             </p>
           </div>
 
