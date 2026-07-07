@@ -21,6 +21,11 @@ const bootSteps = [
     title: "同步远方状态",
     detail: "美国线路已建立",
   },
+  {
+    id: "ready",
+    title: "启动完成",
+    detail: "正在打开补给站",
+  },
 ];
 
 function getTypedParts(step, typedChars) {
@@ -46,30 +51,17 @@ function getTypedParts(step, typedChars) {
   };
 }
 
-function Boot({ gateState }) {
+function Boot({ isExiting = false, onEnter }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [typedChars, setTypedChars] = useState(0);
-  const [blockedStepVisible, setBlockedStepVisible] = useState(false);
-  const [blockedStepDone, setBlockedStepDone] = useState(false);
 
   const activeStep = bootSteps[Math.min(activeIndex, bootSteps.length - 1)];
   const activeTotalChars = activeStep.title.length + activeStep.detail.length;
-  const isCurrentStepDone = typedChars >= activeTotalChars;
-  const isLastAnimatedStep = activeIndex === bootSteps.length - 1;
+  const isReady = activeIndex === bootSteps.length - 1 && typedChars >= activeTotalChars;
 
   useEffect(() => {
-    if (blockedStepDone) {
+    if (isReady) {
       return undefined;
-    }
-
-    if (blockedStepVisible) {
-      const blockedTimer = window.setTimeout(() => {
-        setBlockedStepDone(true);
-      }, 260);
-
-      return () => {
-        window.clearTimeout(blockedTimer);
-      };
     }
 
     if (typedChars < activeTotalChars) {
@@ -82,16 +74,6 @@ function Boot({ gateState }) {
       };
     }
 
-    if (isLastAnimatedStep && isCurrentStepDone) {
-      const blockRevealTimer = window.setTimeout(() => {
-        setBlockedStepVisible(true);
-      }, 260);
-
-      return () => {
-        window.clearTimeout(blockRevealTimer);
-      };
-    }
-
     const nextStepTimer = window.setTimeout(() => {
       setActiveIndex((current) => current + 1);
       setTypedChars(0);
@@ -100,39 +82,22 @@ function Boot({ gateState }) {
     return () => {
       window.clearTimeout(nextStepTimer);
     };
-  }, [
-    activeStep.title.length,
-    activeTotalChars,
-    blockedStepDone,
-    blockedStepVisible,
-    isCurrentStepDone,
-    isLastAnimatedStep,
-    typedChars,
-  ]);
+  }, [activeStep.title.length, activeTotalChars, isReady, typedChars]);
 
   const progressValue = useMemo(() => {
-    if (blockedStepDone) {
-      return 100;
-    }
-
-    if (blockedStepVisible) {
-      return 100;
-    }
-
-    const base = activeIndex / (bootSteps.length + 1);
+    const base = activeIndex / bootSteps.length;
     const currentProgress =
       activeTotalChars === 0
         ? 0
-        : Math.min(typedChars / activeTotalChars, 1) / (bootSteps.length + 1);
+        : Math.min(typedChars / activeTotalChars, 1) / bootSteps.length;
 
     return Math.round((base + currentProgress) * 100);
-  }, [activeIndex, activeTotalChars, blockedStepDone, blockedStepVisible, typedChars]);
-
-  const blockedSummary =
-    gateState?.detail || "地点检测未通过，当前不在美国范围内，因此入口暂不开放。";
+  }, [activeIndex, activeTotalChars, typedChars]);
 
   return (
-    <section className="boot-screen">
+    <section
+      className={isExiting ? "boot-screen boot-screen--exit" : "boot-screen"}
+    >
       <div className="boot-screen__backdrop" />
       <div className="boot-screen__window">
         <div className="boot-screen__traffic" aria-hidden="true">
@@ -159,7 +124,7 @@ function Boot({ gateState }) {
             <div className="boot-screen__steps">
               {bootSteps.map((step, index) => {
                 const isVisible = index < activeIndex;
-                const isActive = index === activeIndex && !blockedStepVisible;
+                const isActive = index === activeIndex;
                 const parts = isVisible
                   ? {
                       title: step.title,
@@ -219,46 +184,13 @@ function Boot({ gateState }) {
                   </div>
                 );
               })}
-
-              <div
-                className={
-                  blockedStepVisible
-                    ? blockedStepDone
-                      ? "boot-screen__step boot-screen__step--visible boot-screen__step--blocked"
-                      : "boot-screen__step boot-screen__step--active boot-screen__step--blocked"
-                    : "boot-screen__step"
-                }
-              >
-                <span className="boot-screen__step-mark">
-                  {blockedStepVisible ? (blockedStepDone ? "block" : "run") : "wait"}
-                </span>
-                <div className="boot-screen__step-copy">
-                  <strong className="boot-screen__step-title">
-                    {blockedStepVisible ? "地点检测未通过" : ""}
-                    {blockedStepVisible && !blockedStepDone ? (
-                      <span className="boot-screen__typing-cursor" aria-hidden="true" />
-                    ) : null}
-                  </strong>
-                  <p className="boot-screen__step-detail">
-                    {blockedStepVisible
-                      ? `当前检测结果：${gateState?.locationLabel || "中国 / 未到美国"}，因此后续内容暂不开放`
-                      : ""}
-                  </p>
-                </div>
-              </div>
             </div>
           </section>
 
           <section className="boot-screen__status">
             <div className="boot-screen__status-line">
               <span>当前任务</span>
-              <strong>
-                {blockedStepVisible
-                  ? blockedStepDone
-                    ? "限制进入"
-                    : "地点检测中"
-                  : activeStep.title}
-              </strong>
+              <strong>{activeStep.title}</strong>
             </div>
             <div className="boot-screen__progress" aria-hidden="true">
               <div
@@ -267,19 +199,18 @@ function Boot({ gateState }) {
               />
             </div>
             <p className="boot-screen__status-text">
-              {blockedStepDone
-                ? blockedSummary
-                : blockedStepVisible
-                  ? "正在写入地点检测结果。"
-                  : activeStep.detail}
+              {isReady ? "点击即可进入远方补给站" : activeStep.detail}
             </p>
           </section>
 
-          {blockedStepDone ? (
-            <button className="boot-screen__button" disabled type="button">
-              暂不可进入
-            </button>
-          ) : null}
+          <button
+            className="boot-screen__button"
+            disabled={!isReady}
+            onClick={onEnter}
+            type="button"
+          >
+            进入补给站
+          </button>
         </div>
       </div>
     </section>
