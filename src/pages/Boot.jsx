@@ -58,6 +58,7 @@ function Boot({ isExiting = false, onEnter }) {
   const activeStep = bootSteps[Math.min(activeIndex, bootSteps.length - 1)];
   const activeTotalChars = activeStep.title.length + activeStep.detail.length;
   const isReady = activeIndex === bootSteps.length - 1 && typedChars >= activeTotalChars;
+  const isEntryLocked = true;
 
   useEffect(() => {
     if (isReady) {
@@ -199,14 +200,14 @@ function Boot({ isExiting = false, onEnter }) {
               />
             </div>
             <p className="boot-screen__status-text">
-              {isReady ? "点击即可进入远方补给站" : activeStep.detail}
+              {isReady ? "入口当前已锁定，暂不可点击进入。" : activeStep.detail}
             </p>
           </section>
 
           <button
             className="boot-screen__button"
-            disabled={!isReady}
-            onClick={onEnter}
+            disabled={!isReady || isEntryLocked}
+            onClick={isEntryLocked ? undefined : onEnter}
             type="button"
           >
             进入补给站
